@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nmcclain/asn1-ber"
+	ber "github.com/nmcclain/asn1-ber"
 )
 
 type Binder interface {
@@ -293,13 +293,13 @@ handler:
 			if err := HandleSearchRequest(req, &controls, messageID, boundDN, server, conn); err != nil {
 				log.Printf("handleSearchRequest error %s", err.Error()) // TODO: make this more testable/better err handling - stop using log, stop using breaks?
 				e := err.(*Error)
-				if err = sendPacket(conn, encodeSearchDone(messageID, e.ResultCode)); err != nil {
+				if err = sendPacket(conn, encodeSearchDone(messageID, controls, e.ResultCode)); err != nil {
 					log.Printf("sendPacket error %s", err.Error())
 					break handler
 				}
 				break handler
 			} else {
-				if err = sendPacket(conn, encodeSearchDone(messageID, LDAPResultSuccess)); err != nil {
+				if err = sendPacket(conn, encodeSearchDone(messageID, controls, LDAPResultSuccess)); err != nil {
 					log.Printf("sendPacket error %s", err.Error())
 					break handler
 				}
@@ -380,7 +380,7 @@ func routeFunc(dn string, funcNames []string) string {
 	dnMatch := "," + strings.ToLower(dn)
 	var weight int
 	for _, fn := range funcNames {
-		if strings.HasSuffix(dnMatch, "," + fn) {
+		if strings.HasSuffix(dnMatch, ","+fn) {
 			//  empty string as 0, no-comma string 1 , etc
 			if fn == "" {
 				weight = 0

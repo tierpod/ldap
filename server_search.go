@@ -226,7 +226,7 @@ func encodeSearchAttribute(name string, values []string) *ber.Packet {
 	return packet
 }
 
-func encodeSearchDone(messageID uint64, ldapResultCode LDAPResultCode) *ber.Packet {
+func encodeSearchDone(messageID uint64, controls []Control, ldapResultCode LDAPResultCode) *ber.Packet {
 	responsePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
 	responsePacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "Message ID"))
 	donePacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationSearchResultDone, nil, "Search result done")
@@ -234,6 +234,14 @@ func encodeSearchDone(messageID uint64, ldapResultCode LDAPResultCode) *ber.Pack
 	donePacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "matchedDN: "))
 	donePacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "errorMessage: "))
 	responsePacket.AppendChild(donePacket)
+
+	// TODO: add more controls processing
+	pagingControls := FindControl(controls, ControlTypePaging)
+	if pagingControls != nil {
+		pg := NewControlPaging(0)
+		pg.SetCookie([]byte{})
+		responsePacket.AppendChild(encodeControls([]Control{pg}))
+	}
 
 	return responsePacket
 }
